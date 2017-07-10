@@ -43,6 +43,8 @@ def extractSingleSample(id, bbox_data, fts_data, num_steps, num_input):
     """
     X_ = []
     frame_id = []
+    if len(np.shape(bbox_data)) == 1:
+        bbox_data = np.reshape(bbox_data, [-1, len(bbox_data)]) #prevent one row!!!
     max_num_item = len(bbox_data) - 1
     index = id
     if (id > max_num_item): #fix the item number, since it might not be the last frame
@@ -76,16 +78,38 @@ def extractSingleGTBBox(frame_id, GT_data, num_steps):
     #since we have skipped Header
     Y_ = []
     GT_data_item = []
+    if len(np.shape(GT_data)) == 1:
+        GT_data = np.reshape(GT_data, [-1, len(GT_data)]) #prevent one row!!!
     for j in range(len(frame_id)):
         idx = int(frame_id[j])
         for i in range(len(GT_data)):
             if (GT_data[i][0] == idx):
-                GT_data_item = GT_data[idx]
+                GT_data_item = GT_data[i] #BugFix: Change idx to i
                 break
         Y_ = np.append(Y_, [GT_data_item[2], GT_data_item[3], GT_data_item[4], GT_data_item[5]])
     Y_ =  np.reshape(Y_, [num_steps, 4])
     return Y_
 
+def extractSingleSampleFromFrameId(target_frame_id, bbox_data, fts_data, num_steps, num_input):
+    """
+    Get single sample with size [num_steps, num_input] from frame id. Avoid repeated items.
+    TODO: we now assume num_steps is 1
+    """
+    X_ = []
+    frame_id = []
+    if len(np.shape(bbox_data)) == 1:
+        bbox_data = np.reshape(bbox_data, [-1, len(bbox_data)]) #prevent one row!!!
+    for idx in range(len(bbox_data)):
+        splitBBoxData = bbox_data[idx]
+        frame_id= int(splitBBoxData[0])
+        if (frame_id == target_frame_id):
+            #concatenante and return
+            splitFtsData = np.asarray((fts_data[idx].replace("#", "").split()))
+            X_ = np.append(X_, splitFtsData)
+            X_ = np.append(X_, [splitBBoxData[1], splitBBoxData[2], splitBBoxData[3], splitBBoxData[4]])
+            X_ = np.reshape(X_, [num_steps, num_input])
+            return X_                    
+    return X_
 def read_GT_list(path):
     list = np.genfromtxt(path, delimiter=',', dtype='string')
     GT_list = []
